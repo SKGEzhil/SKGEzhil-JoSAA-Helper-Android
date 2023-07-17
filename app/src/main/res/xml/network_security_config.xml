@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Configuration for all domains -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Include the certificates you trust (if needed) -->
+        </trust-anchors>
+    </base-config>
+
+    <!-- Configuration for specific domains -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <!-- Add other domains you need to allow cleartext traffic to -->
+    </domain-config>
+</network-security-config>
