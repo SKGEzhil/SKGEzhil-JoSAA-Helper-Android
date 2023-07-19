@@ -227,7 +227,6 @@ fun RankInput(label: String) {
                     submit_form.category_rank = enteredText
                 }
 
-                println("Entered value: $enteredText")
             }),
             modifier = Modifier
                 .padding(all = 10.dp)
