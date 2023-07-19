@@ -98,7 +98,6 @@ fun Dropdown3(label: String, options: List<String>) {
     val currentOptions by rememberUpdatedState(newValue = options)
     var expanded by remember { mutableStateOf(false) }
     var selectedOptionText by rememberSaveable { mutableStateOf(currentOptions[0]) }
-    var ExecutionState by remember { mutableStateOf(false) }
 
 
     Column(
