@@ -1,5 +1,6 @@
 package com.skgezhil.josaa
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -261,89 +262,9 @@ fun LoadingScreen(is_loading: Boolean) {
 
 }
 
-@Composable
-fun TopBarMenu(isExpanded: Boolean){
-    MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(10.dp))) {
-        DropdownMenu(
-            expanded = isExpanded,
-            modifier = Modifier.padding(end = 10.dp),
-            onDismissRequest = {
-                expanded = false
-            }
-        ) {
-
-            Text(
-                text = "SKGEzhil",
-                modifier = Modifier
-                    .padding(all = 10.dp),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-
-
-            DropdownMenuItem(
-                text = { Text(text = "Instagram")},
-                onClick = {
-
-
-                },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.instagram),
-                        modifier = Modifier
-                            .width(24.dp),
-                        contentDescription = "instagram"
-                    )
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(text = "GitHub")},
-                onClick = {
-                },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.github),
-                        modifier = Modifier
-                            .width(24.dp),
-                        contentDescription = "instagram"
-                    )
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(text = "YouTube")},
-                onClick = {},
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.youtube),
-                        modifier = Modifier
-                            .width(24.dp),
-                        contentDescription = "instagram"
-                    )
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(text = "Source Code")},
-                onClick = {},
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.github),
-                        modifier = Modifier
-                            .width(24.dp),
-                        contentDescription = "instagram"
-                    )
-                }
-            )
-
-        }
-    }
-
-}
-
-@Preview(showBackground = true)
-@Composable
-fun Preview_top_menu(){
-    TopBarMenu(true)
+fun hello(context: Context){
+    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://google.com"))
+    context.startActivity(browserIntent)
 }
 
 @Preview(showBackground = true)

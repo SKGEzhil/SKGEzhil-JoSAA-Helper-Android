@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,12 +28,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.skgezhil.josaa.ui.theme.SKGEzhilJoSAAHelperTheme
 
 class ResultActivity : ComponentActivity() {
@@ -61,14 +68,96 @@ class ResultActivity : ComponentActivity() {
                                 }
                             },
                             actions = {
+                                val isExpanded by rememberUpdatedState(newValue = expanded)
                                 IconButton(onClick = {
-
+                                    expanded = true
                                 }) {
                                     Icon(
                                         imageVector = Icons.Filled.Menu,
                                         contentDescription = "Localized description"
                                     )
                                 }
+
+
+
+                                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(10.dp))) {
+                                    DropdownMenu(
+                                        expanded = isExpanded,
+                                        modifier = Modifier.padding(end = 10.dp),
+                                        onDismissRequest = {
+                                            expanded = false
+                                        }
+                                    ) {
+
+                                        Text(
+                                            text = "SKGEzhil",
+                                            modifier = Modifier
+                                                .padding(all = 10.dp),
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+
+
+                                        DropdownMenuItem(
+                                            text = { Text(text = "Instagram")},
+                                            onClick = {
+                                                start_activity("instagram", this@ResultActivity)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.instagram),
+                                                    modifier = Modifier
+                                                        .width(24.dp),
+                                                    contentDescription = "instagram"
+                                                )
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(text = "GitHub")},
+                                            onClick = {
+                                                start_activity("github", this@ResultActivity)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.github),
+                                                    modifier = Modifier
+                                                        .width(24.dp),
+                                                    contentDescription = "instagram"
+                                                )
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(text = "YouTube")},
+                                            onClick = {
+                                                start_activity("youtube", this@ResultActivity)
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.youtube),
+                                                    modifier = Modifier
+                                                        .width(24.dp),
+                                                    contentDescription = "instagram"
+                                                )
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text(text = "Source Code")},
+                                            onClick = {},
+                                            leadingIcon = {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.github),
+                                                    modifier = Modifier
+                                                        .width(24.dp),
+                                                    contentDescription = "instagram"
+                                                )
+                                            }
+                                        )
+
+                                    }
+                                }
+
+
                             }
                         )
                     }
@@ -88,28 +177,6 @@ class ResultActivity : ComponentActivity() {
         }
     }
 }
-
-//data class Result_Data(val ResultData: String)
-//
-//@Composable
-//fun ResultList(result_data: List<Message2>){
-//    LazyColumn {
-//        items(result_data) { message ->
-//            ResultCard(message)
-//        }
-//    }
-//}
-//
-//@Composable
-//fun ResultCard(data: Message2){
-//    Text(data.ResultData)
-//}
-//
-//@Preview(showBackground = true)
-//@Composable
-//fun preview_result(){
-//    ResultCard(data = Result_Data("Hello"))
-//}
 
 @Composable
 fun ResultList(result_data: List<GetDataClass>){
@@ -162,7 +229,7 @@ fun ResultCard(card_data: GetDataClass){
                     .padding(start = 10.dp)
             ){
                 Text(
-                    text = "Chances: 100%",
+                    text = "Chances: ${card_data.chances}%",
                 )
             }
         }

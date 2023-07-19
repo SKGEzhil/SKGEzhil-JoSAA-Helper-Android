@@ -3,6 +3,7 @@ package com.skgezhil.josaa
 // --------------------------------- Imports ----------------------------------
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -370,6 +371,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
 
+
                                 MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(10.dp))) {
                                     DropdownMenu(
                                         expanded = isExpanded,
@@ -392,7 +394,7 @@ class MainActivity : ComponentActivity() {
                                         DropdownMenuItem(
                                             text = { Text(text = "Instagram")},
                                             onClick = {
-                                                start_activity("instagram")
+                                                start_activity("instagram", this@MainActivity)
                                             },
                                             leadingIcon = {
                                                 Icon(
@@ -406,7 +408,7 @@ class MainActivity : ComponentActivity() {
                                         DropdownMenuItem(
                                             text = { Text(text = "GitHub")},
                                             onClick = {
-                                                      start_activity("github")
+                                                      start_activity("github", this@MainActivity)
                                             },
                                             leadingIcon = {
                                                 Icon(
@@ -420,7 +422,7 @@ class MainActivity : ComponentActivity() {
                                         DropdownMenuItem(
                                             text = { Text(text = "YouTube")},
                                             onClick = {
-                                                      start_activity("youtube")
+                                                      start_activity("youtube", this@MainActivity)
                                             },
                                             leadingIcon = {
                                                 Icon(
@@ -483,15 +485,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun start_activity(activity_name: String){
-        var url: String = ""
-        when(activity_name){
-            "instagram" -> url = "https://instagram.com/skgezhil2005"
-            "github" -> url = "https://github.com/skgezhil"
-            "youtube" -> url = "https://youtube.com/skgezhil"
-        }
-        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        startActivity(browserIntent)
-    }
+}
 
+fun start_activity(activity_name: String, context: Context){
+    var url: String = ""
+    when(activity_name){
+        "instagram" -> url = "https://instagram.com/skgezhil2005"
+        "github" -> url = "https://github.com/skgezhil"
+        "youtube" -> url = "https://youtube.com/skgezhil"
+    }
+    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+    context.startActivity(browserIntent)
 }
