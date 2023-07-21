@@ -1,17 +1,22 @@
 package com.skgezhil.josaa
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
+import android.view.MotionEvent
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -19,16 +24,21 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,16 +51,19 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
-import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.startActivity
 
 
 @Composable
@@ -144,7 +157,7 @@ fun Dropdown3(label: String, options: List<String>) {
                             selectedOptionText = selectionOption
                             option = selectionOption
                             expanded = false
-                            DropdownManipulation(label, selectionOption)
+                            DropdownManipulation(label, selectionOption, isConnected)
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                     )
@@ -157,30 +170,6 @@ fun Dropdown3(label: String, options: List<String>) {
     }
 }
 
-fun DropdownManipulation(label: String, option: String) {
-    if (label == "Institute Type") {
-        submit_form.inst_type = option
-        SendDropdown("institute_type", option)
-        GetDropdown("institute")
-    }
-    if (label == "Institute") {
-        submit_form.inst = option
-        SendDropdown("institute", option)
-        GetDropdown("program")
-    }
-    if (label == "Program") {
-        submit_form.prog = option
-    }
-    if (label == "Gender") {
-        submit_form.gender = option
-    }
-    if (label == "Quota") {
-        submit_form.quota = option
-    }
-    if (label == "Category") {
-        submit_form.category = option
-    }
-}
 
 var text_2 by mutableStateOf("")
 
@@ -260,10 +249,6 @@ fun LoadingScreen(is_loading: Boolean) {
 
 }
 
-fun hello(context: Context){
-    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://google.com"))
-    context.startActivity(browserIntent)
-}
 
 @Preview(showBackground = true)
 @Composable
@@ -290,68 +275,192 @@ fun preview4() {
     LoadingScreen(loading)
 }
 
+@ExperimentalComposeUiApi
 @Composable
-fun Dropdown(){
-    var isExpanded by remember { mutableStateOf(false)}
-    var SelectedItem = "Select"
-    Box(modifier = Modifier
-        .wrapContentSize(Alignment.TopStart)
-        .padding(all = 10.dp)
+fun RatingBar(
+    modifier: Modifier = Modifier,
+    rating: Int
+) {
+    var ratingState by remember {
+        mutableStateOf(rating)
+    }
+
+    var selected by remember {
+        mutableStateOf(false)
+    }
+    val size by animateDpAsState(
+        targetValue = if (selected) 56.dp else 55.dp,
+        spring(Spring.DampingRatioMediumBouncy)
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 10.dp)
+            .padding(end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
     ) {
-        Column {
-            Text(text = "Institute Type",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                modifier = Modifier
-                    .padding(bottom = 9.dp))
+        for (i in 1..5) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_round_star_24),
+                contentDescription = "star",
+                modifier = modifier
+                    .width(size)
+                    .height(size)
+                    .pointerInteropFilter {
+                        when (it.action) {
+                            MotionEvent.ACTION_DOWN -> {
+                                selected = true
+                                ratingState = i
+                            }
+
+                            MotionEvent.ACTION_UP -> {
+                                selected = false
+                            }
+                        }
+                        true
+                    },
+                tint = if (i <= ratingState) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BackgroundOverlay(
+    color: Color = Color(0x99000000),
+    onClick: () -> Unit = {}
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color)
+            .clickable { onClick() }
+    ) {
+
+
+    }
+
+}
+
+
+    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+    @Composable
+    fun RateDialog() {
+
+        BackgroundOverlay(color = Color(0x99000000)) {
+
+        }
+        Dialog(
+            onDismissRequest = { showRatingDialog = false },
+
+            ) {
             Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
                 shadowElevation = 1.dp,
-                shape = RoundedCornerShape(10.dp)
+                shape = RoundedCornerShape(25.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Rate",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(start = 17.dp)
+                            .padding(top = 10.dp)
+                            .padding(bottom = 7.dp)
+                            .fillMaxWidth()
+                    )
+
+                    RatingBar(rating = 0)
+
+                    Text(
+                        text = "Review",
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(start = 17.dp)
+                            .padding(top = 10.dp)
+                            .padding(bottom = 7.dp)
+                            .fillMaxWidth()
+                    )
+
+                    var text by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+                        mutableStateOf(TextFieldValue("", TextRange(0, 7)))
+                    }
+
+                    OutlinedTextField(
+                        value = text,
+                        shape = RoundedCornerShape(25.dp),
+                        onValueChange = { text = it },
+                        modifier = Modifier
+                            .padding(start = 10.dp)
+                            .padding(end = 10.dp)
+                            .padding(bottom = 12.dp)
+                            .heightIn(120.dp, Dp.Infinity)
+                            .fillMaxWidth()
+                    )
+
+                    ComposableWithFillMaxWidthAndButton()
+
+                }
+
+
+            }
+        }
+
+
+    }
+
+@Composable
+fun ComposableWithFillMaxWidthAndButton() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(1.dp),
+        color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("")
+            Surface(
+                modifier = Modifier
+                    .padding(all = 10.dp),
+                shadowElevation = 2.dp,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(50.dp)
+
             ) {
                 Button(
-                    onClick = { isExpanded = !isExpanded },
-                    Modifier.width(250.dp),
+                    onClick = {
+                        snacbarMessage = "Rating Submited"
+
+                        showSnackbar = true
+                              showRatingDialog = false},
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        contentColor = Color.Gray),
-                    shape = RoundedCornerShape (10.dp),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 ) {
-                    Text(text = SelectedItem)
+                    Text("Submit")
                 }
-            }
-            DropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
-                DropdownMenuItem(text = { Text("Institute Type")},
-                    onClick = {
-                        SelectedItem = "Institute Type"
-                        isExpanded = !isExpanded
-                    })
-                DropdownMenuItem(text = { Text("Institute Type")},
-                    onClick = {
-                        SelectedItem = "Institute"
-                        isExpanded = !isExpanded
-                    })
-                DropdownMenuItem(text = { Text("Institute Type")},
-                    onClick = {
-                        SelectedItem = "Institute Type"
-                        isExpanded = !isExpanded
-                    })
-                DropdownMenuItem(text = { Text("Institute Type")},
-                    onClick = {
-                        SelectedItem = "Institute"
-                        isExpanded = !isExpanded
-                    })
-                DropdownMenuItem(text = { Text("Institute Type")},
-                    onClick = {
-                        SelectedItem = "Institute Type"
-                        isExpanded = !isExpanded
-                    })
-                DropdownMenuItem(text = { Text("Institute Type")},
-                    onClick = {
-                        SelectedItem = "Institute Type"
-                        isExpanded = !isExpanded
-                    })
             }
 
         }
     }
 }
+
+    @Preview
+    @Composable
+    fun DialogPreview() {
+        RateDialog()
+    }

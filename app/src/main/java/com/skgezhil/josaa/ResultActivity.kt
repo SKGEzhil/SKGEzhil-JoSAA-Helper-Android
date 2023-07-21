@@ -143,7 +143,9 @@ class ResultActivity : ComponentActivity() {
                                         )
                                         DropdownMenuItem(
                                             text = { Text(text = "Source Code")},
-                                            onClick = {},
+                                            onClick = {
+                                                      start_activity("source-code", this@ResultActivity)
+                                            },
                                             leadingIcon = {
                                                 Icon(
                                                     painter = painterResource(id = R.drawable.github),

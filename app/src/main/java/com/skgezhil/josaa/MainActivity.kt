@@ -3,11 +3,15 @@ package com.skgezhil.josaa
 // --------------------------------- Imports ----------------------------------
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Switch
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -29,6 +33,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -42,14 +47,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.shapes
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -59,6 +69,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -72,15 +83,20 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.skgezhil.josaa.ui.theme.SKGEzhilJoSAAHelperTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.lang.Error
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.cert.X509Certificate
@@ -88,6 +104,12 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
 
 // ------------------------------- Data Class --------------------------------------
 
@@ -120,6 +142,10 @@ data class DropdownManipulationClass(var label: String, var option: String)
 
 // --------------------------------------- Variables -------------------------------------------
 
+var snacbarMessage by mutableStateOf("")
+var isConnected by mutableStateOf(false)
+var showRatingDialog by mutableStateOf(false)
+var showSnackbar by mutableStateOf(false)
 var submit_form = SendDataClass("", "", "", "", "", "", "", "")
 var received_data: List<GetDataClass> = listOf()
 const val Endpoint: String = "https://skgezhil-josaa.com"
@@ -226,21 +252,29 @@ fun SendDropdown(dropdown_type: String, dropdown_value: String) = runBlocking {
     }
 
     withContext(Dispatchers.IO) {
-        val url = URL(serverUrl)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.doOutput = true
-        connection.setRequestProperty("Content-Type", "application/json")
 
-        val outputStreamWriter = OutputStreamWriter(connection.outputStream)
-        outputStreamWriter.write(datajson.toString())
-        outputStreamWriter.flush()
+        try{
+            val url = URL(serverUrl)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json")
 
-        val responseCode = connection.responseCode
-        println("Response code: $responseCode")
+            val outputStreamWriter = OutputStreamWriter(connection.outputStream)
+            outputStreamWriter.write(datajson.toString())
+            outputStreamWriter.flush()
 
-        outputStreamWriter.close()
-        connection.disconnect()
+            val responseCode = connection.responseCode
+            println("Response code: $responseCode")
+
+            outputStreamWriter.close()
+            connection.disconnect()
+        }
+
+        catch (e: Error){
+            println("Error: ${e}")
+        }
+
     }
 }
 
@@ -341,18 +375,68 @@ fun ObjectToString() {
 // ----------------------------- Main Activity ---------------------------------------
 var expanded by  mutableStateOf(false)
 class MainActivity : ComponentActivity() {
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-    @OptIn(ExperimentalMaterial3Api::class)
+
+    private var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val notConnected = intent.getBooleanExtra(
+                ConnectivityManager
+                .EXTRA_NO_CONNECTIVITY, false)
+            if (notConnected) {
+                println("No Internet")
+
+                isConnected = false
+            } else{
+                isConnected = true
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        registerReceiver(broadcastReceiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(broadcastReceiver)
+    }
+
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installSplashScreen()
 
         setContent {
+
             SKGEzhilJoSAAHelperTheme {
+                val snackbarHostState = remember { SnackbarHostState() }
+                val scope = rememberCoroutineScope()
+                val message by rememberUpdatedState(newValue = snacbarMessage)
                 val isExpanded by rememberUpdatedState(newValue = expanded)
+                val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
+                if (showSnackbar){
+                    // show snackbar as a suspend function
+                    scope.launch {
+                        val job = scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = message,
+                                withDismissAction = true,
+                            )
+                        }
+                        delay(2000)
+                        job.cancel()
+                    }
+                    showSnackbar = false
+                }
 
                 Scaffold(
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                     topBar = {
                         TopAppBar(
+                            scrollBehavior = scrollBehavior,
                             title = {
                                 Text(
                                     "SKGEzhil JoSAA Helper",
@@ -435,7 +519,9 @@ class MainActivity : ComponentActivity() {
                                         )
                                         DropdownMenuItem(
                                             text = { Text(text = "Source Code")},
-                                            onClick = {},
+                                            onClick = {
+                                                      start_activity("source-code", this@MainActivity)
+                                            },
                                             leadingIcon = {
                                                 Icon(
                                                     painter = painterResource(id = R.drawable.github),
@@ -446,6 +532,20 @@ class MainActivity : ComponentActivity() {
                                             }
                                         )
 
+                                        DropdownMenuItem(
+                                            text = { Text(text = "Rate App /\nSuggest Changes")},
+                                            onClick = {
+                                                expanded = false
+                                                showRatingDialog = true
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Star,
+                                                    contentDescription = "")
+                                            }
+                                        )
+
+
                                     }
                                 }
 
@@ -454,17 +554,28 @@ class MainActivity : ComponentActivity() {
                     },
 
                     floatingActionButton = {
-                        ExtendedFloatingActionButton(
-                            onClick = {
-                                loading = true
-                                SendData()
-                                GetData()
-                                val intent = Intent(this, ResultActivity::class.java)
-                                startActivity(intent)
-                            },
-                            text = { Text(text = "Submit  ") },
-                            icon = {}
-                        )
+
+                        if (!showRatingDialog){
+                            ExtendedFloatingActionButton(
+                                onClick = {
+                                    if (showRatingDialog){
+                                        println("CLICKED")
+                                        showSnackbar = true
+                                        showRatingDialog = false
+                                    }
+                                    else{
+                                        loading = true
+                                        SendData()
+                                        GetData()
+                                        val intent = Intent(this, ResultActivity::class.java)
+                                        startActivity(intent)
+                                    }
+
+                                },
+                                text = { Text(text = "Submit  ") },
+                                icon = {}
+                            )
+                        }
 
                     },
                     floatingActionButtonPosition = FabPosition.End,
@@ -475,15 +586,20 @@ class MainActivity : ComponentActivity() {
                     Surface {
                         Box(modifier = Modifier.padding(contentPadding)) {
 
-
                             MainScren()
                             LoadingScreen(loading)
+
+                            if (showRatingDialog)
+                                RateDialog()
+
                         }
                     }
                 }
             }
         }
     }
+
+
 
 }
 
@@ -493,7 +609,53 @@ fun start_activity(activity_name: String, context: Context){
         "instagram" -> url = "https://instagram.com/skgezhil2005"
         "github" -> url = "https://github.com/skgezhil"
         "youtube" -> url = "https://youtube.com/skgezhil"
+        "source-code" -> url = "https://github.com/SKGEzhil/SKGEzhil-JoSAA-Helper-Android"
     }
+
+
     val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
     context.startActivity(browserIntent)
+}
+
+fun DropdownManipulation(label: String, option: String, isConnected: Boolean) {
+
+    if (isConnected){
+        when(label){
+            "Institute Type" -> {
+                submit_form.inst_type = option
+                SendDropdown("institute_type", option)
+                GetDropdown("institute")
+            }
+
+            "Institute" -> {
+                submit_form.inst = option
+                SendDropdown("institute", option)
+                GetDropdown("program")
+            }
+
+            "Program" -> {
+                submit_form.prog = option
+            }
+
+            "Category" -> {
+                submit_form.category = option
+            }
+
+            "Quota" -> {
+                submit_form.quota = option
+            }
+
+            "Gender" -> {
+                submit_form.gender = option
+            }
+        }
+
+    } else {
+        snacbarMessage = "Please check your internet connection"
+        showSnackbar = true
+        println(" Check your connection")
+
+    }
+
+
 }
