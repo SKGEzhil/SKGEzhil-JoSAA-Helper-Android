@@ -1,5 +1,6 @@
 package com.skgezhil.josaa
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,7 +16,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,13 +26,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -38,15 +46,45 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.tasks.Task
+import com.google.android.play.core.review.ReviewException
+import com.google.android.play.core.review.ReviewManagerFactory
+import com.google.android.play.core.review.model.ReviewErrorCode
 import com.skgezhil.josaa.ui.theme.SKGEzhilJoSAAHelperTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+var showSnackbar2 by mutableStateOf(false)
 
 class ResultActivity : ComponentActivity() {
+    @SuppressLint("CoroutineCreationDuringComposition")
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             SKGEzhilJoSAAHelperTheme {
                 // A surface container using the 'background' color from the theme
+
+                val snackbarHostState = remember { SnackbarHostState() }
+                val scope = rememberCoroutineScope()
+                val message by rememberUpdatedState(newValue = snacbarMessage)
+
+                if (showSnackbar2) {
+                    // show snackbar as a suspend function
+                    scope.launch {
+                        val job = scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = message,
+                                withDismissAction = true,
+                            )
+                        }
+                        delay(2000)
+                        job.cancel()
+                    }
+                    showSnackbar = false
+                }
+
+
                 Scaffold(
                     topBar = {
                         TopAppBar(
@@ -156,6 +194,35 @@ class ResultActivity : ComponentActivity() {
                                             }
                                         )
 
+                                        DropdownMenuItem(
+                                            text = { Text(text = "Rate App /\nWrite Review") },
+                                            onClick = {
+                                                expanded = false
+//                                                showRatingDialog = true
+                                                review()
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Star,
+                                                    contentDescription = ""
+                                                )
+                                            }
+                                        )
+
+                                        DropdownMenuItem(
+                                            text = { Text(text = "Feedback") },
+                                            onClick = {
+                                                expanded = false
+                                                showRatingDialog = true
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Edit,
+                                                    contentDescription = ""
+                                                )
+                                            }
+                                        )
+
                                     }
                                 }
 
@@ -170,11 +237,34 @@ class ResultActivity : ComponentActivity() {
                     Surface {
                         Box(modifier = Modifier.padding(contentPadding)) {
                             ResultList(result_data = received_data)
+                            if (showRatingDialog)
+                                RateDialog()
+
                         }
                     }
 
 
                 }
+            }
+        }
+    }
+
+    private fun review() {
+        val manager = ReviewManagerFactory.create(this)
+        val request = manager.requestReviewFlow()
+        request.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                // We got the ReviewInfo object
+                val reviewInfo = task.result
+                println("Success")
+
+                val flow: Task<Void?> = manager.launchReviewFlow(this, reviewInfo)
+                flow.addOnCompleteListener { task1: Task<Void?>? -> }
+
+            } else {
+                // There was some problem, log or handle the error code.
+                @ReviewErrorCode val reviewErrorCode =
+                    (task.getException() as ReviewException).errorCode
             }
         }
     }

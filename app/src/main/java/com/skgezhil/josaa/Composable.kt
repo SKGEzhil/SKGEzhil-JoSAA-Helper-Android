@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -105,72 +107,94 @@ fun MainScren() {
 
 }
 
+var Expanded by mutableStateOf(false)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun Dropdown3(label: String, options: List<String>) {
     val currentOptions by rememberUpdatedState(newValue = options)
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(Expanded) }
     var selectedOptionText by rememberSaveable { mutableStateOf(currentOptions[0]) }
 
-
-    Column(
+    Surface(
+        color = MaterialTheme.colorScheme.outline,
         modifier = Modifier
-            .padding(top = 20.dp)
-            .fillMaxWidth()
+            .padding(top = 10.dp)
+            .padding(start = 5.dp)
+            .padding(end = 5.dp),
+        shape = RoundedCornerShape(10.dp),
+        shadowElevation = 2.dp
     ) {
-        Text(
-            text = label,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(start = 10.dp),
-            fontSize = 22.sp
-        )
-
-        ExposedDropdownMenuBox(
-            modifier = Modifier
-                .padding(all = 10.dp)
-                .clip(RoundedCornerShape(10.dp)),
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.padding(start = 5.dp)
         ) {
-            TextField(
-                modifier = Modifier.menuAnchor(),
-                readOnly = true,
-                value = selectedOptionText,
-                onValueChange = {},
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = ExposedDropdownMenuDefaults.textFieldColors(),
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
+            Column(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
+                    .padding(top = 10.dp)
+                    .fillMaxWidth()
+
             ) {
-                currentOptions.forEach { selectionOption ->
-                    DropdownMenuItem(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp)),
-                        text = { Text(selectionOption) },
-                        onClick = {
-                            selectedOptionText = selectionOption
-                            option = selectionOption
-                            expanded = false
-                            DropdownManipulation(label, selectionOption, isConnected)
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                Text(
+                    text = label,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(start = 10.dp),
+                    fontSize = 22.sp
+                )
+
+                ExposedDropdownMenuBox(
+                    modifier = Modifier
+                        .padding(all = 10.dp)
+                        .clip(RoundedCornerShape(10.dp)),
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                ) {
+                    TextField(
+                        modifier = Modifier.menuAnchor(),
+                        readOnly = true,
+                        value = selectedOptionText,
+                        onValueChange = {},
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        colors = ExposedDropdownMenuDefaults.textFieldColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp)
+                        ),
                     )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                    ) {
+                        currentOptions.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp)),
+                                text = { Text(selectionOption) },
+                                onClick = {
+                                    selectedOptionText = selectionOption
+                                    option = selectionOption
+                                    expanded = false
+                                    DropdownManipulation(label, selectionOption, isConnected)
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                            )
+                        }
+
+                    }
+
                 }
 
             }
-
         }
-
     }
+
+
 }
 
-
+var loadingdialog by mutableStateOf(false)
 var text_2 by mutableStateOf("")
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
@@ -191,41 +215,63 @@ fun RankInput(label: String) {
         text.value = it  // it is supposed to be this
     }
 
-    Column(
-        modifier = Modifier
-            .padding(top = 20.dp)
+Surface(
+    color = MaterialTheme.colorScheme.outline,
+    modifier = Modifier
+        .padding(top = 10.dp)
+        .padding(start = 5.dp)
+        .padding(end = 5.dp),
+    shape = RoundedCornerShape(10.dp),
+    shadowElevation = 2.dp
+
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.padding(start = 5.dp)
     ) {
-        Text(
-            text = label,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(start = 10.dp),
-            fontSize = 22.sp
-
-        )
-
-        TextField(
-            value = text.value,
-            keyboardActions = KeyboardActions(onDone = {
-                val enteredText = text.value
-                softwareKeyboardController?.hide()
-                if (label == "Common Rank") {
-                    submit_form.common_rank = enteredText
-                }
-                if (label == "Category Rank") {
-                    submit_form.category_rank = enteredText
-                }
-
-            }),
+        Column(
             modifier = Modifier
-                .padding(all = 10.dp)
-                .fillMaxWidth(1f)
-                .clip(RoundedCornerShape(10.dp)),
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-            onValueChange = change,
-            singleLine = true
-        )
+                .padding(top = 10.dp)
+        ) {
+            Text(
+                text = label,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 10.dp),
+                fontSize = 22.sp
+
+            )
+
+            TextField(
+                value = text.value,
+                colors = ExposedDropdownMenuDefaults.textFieldColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp)
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    val enteredText = text.value
+                    softwareKeyboardController?.hide()
+                    if (label == "Common Rank") {
+                        submit_form.common_rank = enteredText
+                    }
+                    if (label == "Category Rank") {
+                        submit_form.category_rank = enteredText
+                    }
+
+                }),
+                modifier = Modifier
+                    .padding(all = 10.dp)
+                    .fillMaxWidth(1f)
+                    .clip(RoundedCornerShape(10.dp)),
+                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                onValueChange = change,
+                singleLine = true
+            )
+        }
     }
+}
+
+
 
 }
 
@@ -238,7 +284,6 @@ fun LoadingScreen(is_loading: Boolean) {
     if (isLoading) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
                 .zIndex(1f)
                 .background(Color.Transparent),
             contentAlignment = Alignment.Center
@@ -274,6 +319,8 @@ fun preview3() {
 fun preview4() {
     LoadingScreen(loading)
 }
+
+var rating_state by mutableStateOf(0)
 
 @ExperimentalComposeUiApi
 @Composable
@@ -313,6 +360,7 @@ fun RatingBar(
                             MotionEvent.ACTION_DOWN -> {
                                 selected = true
                                 ratingState = i
+                                rating_state = i
                             }
 
                             MotionEvent.ACTION_UP -> {
@@ -381,7 +429,7 @@ fun BackgroundOverlay(
                     RatingBar(rating = 0)
 
                     Text(
-                        text = "Review",
+                        text = "Feedback",
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
@@ -407,7 +455,7 @@ fun BackgroundOverlay(
                             .fillMaxWidth()
                     )
 
-                    ComposableWithFillMaxWidthAndButton()
+                    ComposableWithFillMaxWidthAndButton(rating_state, text.text)
 
                 }
 
@@ -419,7 +467,7 @@ fun BackgroundOverlay(
     }
 
 @Composable
-fun ComposableWithFillMaxWidthAndButton() {
+fun ComposableWithFillMaxWidthAndButton(rating_state: Int, feedback: String) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -442,10 +490,14 @@ fun ComposableWithFillMaxWidthAndButton() {
             ) {
                 Button(
                     onClick = {
-                        snacbarMessage = "Rating Submited"
-
-                        showSnackbar = true
-                              showRatingDialog = false},
+                        snacbarMessage = "Feedback Submitted Successfully"
+                        println(rating_state)
+                        println(feedback)
+                        feedback_send.rating = rating_state
+                        feedback_send.feedback_ = feedback
+                        SendFeedback()
+                        showRatingDialog = false
+                        showSnackbar = true},
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -459,8 +511,27 @@ fun ComposableWithFillMaxWidthAndButton() {
     }
 }
 
+@Composable
+fun LoadingDialog(is_loading: Boolean){
+
+    val loading by rememberUpdatedState(newValue = is_loading)
+
+    if (is_loading){
+        Dialog(onDismissRequest = { /*TODO*/ }) {
+            LoadingScreen(is_loading = true)
+        }
+    }
+
+}
+
     @Preview
     @Composable
     fun DialogPreview() {
         RateDialog()
     }
+
+@Preview
+@Composable
+fun LoadingPreview(){
+    LoadingDialog(true)
+}
