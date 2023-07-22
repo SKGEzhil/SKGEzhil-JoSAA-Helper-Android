@@ -2,6 +2,7 @@ package com.skgezhil.josaa
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -54,8 +55,6 @@ import com.skgezhil.josaa.ui.theme.SKGEzhilJoSAAHelperTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-var showSnackbar2 by mutableStateOf(false)
-
 class ResultActivity : ComponentActivity() {
     @SuppressLint("CoroutineCreationDuringComposition")
     @OptIn(ExperimentalMaterial3Api::class)
@@ -63,27 +62,11 @@ class ResultActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             SKGEzhilJoSAAHelperTheme {
-                // A surface container using the 'background' color from the theme
 
-                val snackbarHostState = remember { SnackbarHostState() }
-                val scope = rememberCoroutineScope()
-                val message by rememberUpdatedState(newValue = snacbarMessage)
-
-                if (showSnackbar2) {
-                    // show snackbar as a suspend function
-                    scope.launch {
-                        val job = scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = message,
-                                withDismissAction = true,
-                            )
-                        }
-                        delay(2000)
-                        job.cancel()
-                    }
-                    showSnackbar = false
+                if (showToast){
+                    Toast.makeText(this, alert_message, Toast.LENGTH_SHORT).show()
+                    showToast = false
                 }
-
 
                 Scaffold(
                     topBar = {
@@ -118,7 +101,13 @@ class ResultActivity : ComponentActivity() {
 
 
 
-                                MaterialTheme(shapes = MaterialTheme.shapes.copy(extraSmall = RoundedCornerShape(10.dp))) {
+                                MaterialTheme(
+                                    shapes = MaterialTheme.shapes.copy(
+                                        extraSmall = RoundedCornerShape(
+                                            10.dp
+                                        )
+                                    )
+                                ) {
                                     DropdownMenu(
                                         expanded = isExpanded,
                                         modifier = Modifier.padding(end = 10.dp),
@@ -138,7 +127,7 @@ class ResultActivity : ComponentActivity() {
 
 
                                         DropdownMenuItem(
-                                            text = { Text(text = "Instagram")},
+                                            text = { Text(text = "Instagram") },
                                             onClick = {
                                                 start_activity("instagram", this@ResultActivity)
                                             },
@@ -152,7 +141,7 @@ class ResultActivity : ComponentActivity() {
                                             }
                                         )
                                         DropdownMenuItem(
-                                            text = { Text(text = "GitHub")},
+                                            text = { Text(text = "GitHub") },
                                             onClick = {
                                                 start_activity("github", this@ResultActivity)
                                             },
@@ -166,7 +155,7 @@ class ResultActivity : ComponentActivity() {
                                             }
                                         )
                                         DropdownMenuItem(
-                                            text = { Text(text = "YouTube")},
+                                            text = { Text(text = "YouTube") },
                                             onClick = {
                                                 start_activity("youtube", this@ResultActivity)
                                             },
@@ -180,9 +169,9 @@ class ResultActivity : ComponentActivity() {
                                             }
                                         )
                                         DropdownMenuItem(
-                                            text = { Text(text = "Source Code")},
+                                            text = { Text(text = "Source Code") },
                                             onClick = {
-                                                      start_activity("source-code", this@ResultActivity)
+                                                start_activity("source-code", this@ResultActivity)
                                             },
                                             leadingIcon = {
                                                 Icon(
@@ -198,7 +187,6 @@ class ResultActivity : ComponentActivity() {
                                             text = { Text(text = "Rate App /\nWrite Review") },
                                             onClick = {
                                                 expanded = false
-//                                                showRatingDialog = true
                                                 review()
                                             },
                                             leadingIcon = {
@@ -232,7 +220,7 @@ class ResultActivity : ComponentActivity() {
                     }
 
 
-                    ) { contentPadding ->
+                ) { contentPadding ->
                     // Screen content
                     Surface {
                         Box(modifier = Modifier.padding(contentPadding)) {
@@ -264,81 +252,8 @@ class ResultActivity : ComponentActivity() {
             } else {
                 // There was some problem, log or handle the error code.
                 @ReviewErrorCode val reviewErrorCode =
-                    (task.getException() as ReviewException).errorCode
+                    (task.exception as ReviewException).errorCode
             }
         }
     }
-}
-
-@Composable
-fun ResultList(result_data: List<GetDataClass>){
-    LazyColumn{
-        items(result_data){message ->
-            ResultCard(message)
-        }
-    }
-}
-
-@Composable
-fun ResultCard(card_data: GetDataClass){
-    Surface(
-        shadowElevation = 2.dp,
-        modifier = Modifier.padding(all = 5.dp),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
-
-    ) {
-
-        Column {
-
-            Column(
-                modifier = Modifier.padding(all = 10.dp)
-            ){
-                Row(
-                    modifier = Modifier.padding(bottom = 5.dp)
-                ){
-                    Text(
-                        text = "Institute:  ",
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(text = card_data.Institute)
-                }
-
-                Row {
-                    Text(
-                        text = "Program:  ",
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(text = card_data.Program)
-                }
-
-            }
-
-            Box(
-                modifier = Modifier
-                    .background(color = colorResource(id = R.color.green_100))
-                    .fillMaxWidth()
-                    .padding(start = 10.dp)
-            ){
-                Text(
-                    text = "Chances: ${card_data.chances}%",
-                )
-            }
-        }
-
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = false)
-@Composable
-fun ResultCardPreview(){
-    ResultCard(card_data = GetDataClass(
-        "Indian Institute of Technology Hydrabad ",
-        "Material Science and Metallurgical Engineering",
-        "Gender-Neutral",
-        "AI",
-        "OBC-NCL",
-        12301,
-        2923,
-        100))
 }

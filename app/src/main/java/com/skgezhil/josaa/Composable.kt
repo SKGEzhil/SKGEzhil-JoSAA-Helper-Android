@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,24 +18,20 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -55,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -66,33 +62,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+// --------------------------- Global Declaration -------------------------------
+var rating_state by mutableStateOf(0)
 
+// ----------------------------- Composables ------------------------------------
 @Composable
 fun MainScren() {
 
     LazyColumn {
         item {
-            Dropdown3(label = "Institute Type", options = institute_type_optn)
+            DropdownMenu(label = "Institute Type", options = institute_type_optn)
         }
         item {
-            Dropdown3(label = "Institute", options = institute_dropdown_string)
-        }
-
-        item {
-            Dropdown3(label = "Program", options = program_dropdown_string)
+            DropdownMenu(label = "Institute", options = institute_dropdown_string)
         }
 
         item {
-            Dropdown3(label = "Gender", options = gender_optn)
+            DropdownMenu(label = "Program", options = program_dropdown_string)
         }
 
         item {
-            Dropdown3(label = "Quota", options = quote_optn)
+            DropdownMenu(label = "Gender", options = gender_optn)
         }
 
         item {
-            Dropdown3(label = "Category", options = category_optn)
+            DropdownMenu(label = "Quota", options = quote_optn)
+        }
+
+        item {
+            DropdownMenu(label = "Category", options = category_optn)
         }
 
         item {
@@ -107,13 +111,11 @@ fun MainScren() {
 
 }
 
-var Expanded by mutableStateOf(false)
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun Dropdown3(label: String, options: List<String>) {
+fun DropdownMenu(label: String, options: List<String>) {
     val currentOptions by rememberUpdatedState(newValue = options)
-    var expanded by remember { mutableStateOf(Expanded) }
+    var expanded by remember { mutableStateOf(false) }
     var selectedOptionText by rememberSaveable { mutableStateOf(currentOptions[0]) }
 
     Surface(
@@ -182,11 +184,8 @@ fun Dropdown3(label: String, options: List<String>) {
                                 contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                             )
                         }
-
                     }
-
                 }
-
             }
         }
     }
@@ -194,15 +193,11 @@ fun Dropdown3(label: String, options: List<String>) {
 
 }
 
-var loadingdialog by mutableStateOf(false)
-var text_2 by mutableStateOf("")
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun RankInput(label: String) {
     val text = remember { mutableStateOf("") }
     val enteredText = text.value
-    text_2 = text.value
     if (label == "Common Rank") {
         submit_form.common_rank = enteredText
     }
@@ -212,67 +207,64 @@ fun RankInput(label: String) {
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
 
     val change: (String) -> Unit = { it ->
-        text.value = it  // it is supposed to be this
+        text.value = it
     }
 
-Surface(
-    color = MaterialTheme.colorScheme.outline,
-    modifier = Modifier
-        .padding(top = 10.dp)
-        .padding(start = 5.dp)
-        .padding(end = 5.dp),
-    shape = RoundedCornerShape(10.dp),
-    shadowElevation = 2.dp
-
-) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp),
+        color = MaterialTheme.colorScheme.outline,
+        modifier = Modifier
+            .padding(top = 10.dp)
+            .padding(start = 5.dp)
+            .padding(end = 5.dp),
         shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.padding(start = 5.dp)
+        shadowElevation = 2.dp
+
     ) {
-        Column(
-            modifier = Modifier
-                .padding(top = 10.dp)
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.padding(start = 5.dp)
         ) {
-            Text(
-                text = label,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(start = 10.dp),
-                fontSize = 22.sp
-
-            )
-
-            TextField(
-                value = text.value,
-                colors = ExposedDropdownMenuDefaults.textFieldColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp)
-                ),
-                keyboardActions = KeyboardActions(onDone = {
-                    val enteredText = text.value
-                    softwareKeyboardController?.hide()
-                    if (label == "Common Rank") {
-                        submit_form.common_rank = enteredText
-                    }
-                    if (label == "Category Rank") {
-                        submit_form.category_rank = enteredText
-                    }
-
-                }),
+            Column(
                 modifier = Modifier
-                    .padding(all = 10.dp)
-                    .fillMaxWidth(1f)
-                    .clip(RoundedCornerShape(10.dp)),
-                keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                onValueChange = change,
-                singleLine = true
-            )
+                    .padding(top = 10.dp)
+            ) {
+                Text(
+                    text = label,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(start = 10.dp),
+                    fontSize = 22.sp
+
+                )
+
+                TextField(
+                    value = text.value,
+                    colors = ExposedDropdownMenuDefaults.textFieldColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp)
+                    ),
+                    keyboardActions = KeyboardActions(onDone = {
+                        val enteredText = text.value
+                        softwareKeyboardController?.hide()
+                        if (label == "Common Rank") {
+                            submit_form.common_rank = enteredText
+                        }
+                        if (label == "Category Rank") {
+                            submit_form.category_rank = enteredText
+                        }
+
+                    }),
+                    modifier = Modifier
+                        .padding(all = 10.dp)
+                        .fillMaxWidth(1f)
+                        .clip(RoundedCornerShape(10.dp)),
+                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+                    onValueChange = change,
+                    singleLine = true
+                )
+            }
         }
     }
-}
-
-
-
 }
 
 @Composable
@@ -280,10 +272,10 @@ fun LoadingScreen(is_loading: Boolean) {
 
     val isLoading by rememberUpdatedState(newValue = is_loading)
 
-
     if (isLoading) {
         Box(
             modifier = Modifier
+                .fillMaxSize()
                 .zIndex(1f)
                 .background(Color.Transparent),
             contentAlignment = Alignment.Center
@@ -293,34 +285,6 @@ fun LoadingScreen(is_loading: Boolean) {
     }
 
 }
-
-
-@Preview(showBackground = true)
-@Composable
-fun MainPreview() {
-    MainScren()
-}
-
-@Preview(showBackground = true)
-@Composable
-fun preview2() {
-    val options1 = listOf("Option 1", "Option 2", "Option 3", "Option 4", "Option 5")
-    Dropdown3("Text", options1)
-}
-
-@Preview(showBackground = true)
-@Composable
-fun preview3() {
-    RankInput("Text")
-}
-
-@Preview(showBackground = true)
-@Composable
-fun preview4() {
-    LoadingScreen(loading)
-}
-
-var rating_state by mutableStateOf(0)
 
 @ExperimentalComposeUiApi
 @Composable
@@ -388,86 +352,77 @@ fun BackgroundOverlay(
             .clickable { onClick() }
     ) {
 
+    }
+}
 
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun RateDialog() {
+
+    BackgroundOverlay(color = Color(0x99000000)) {}
+    Dialog(
+        onDismissRequest = { showRatingDialog = false },
+        ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
+            shadowElevation = 1.dp,
+            shape = RoundedCornerShape(25.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Rate",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(start = 17.dp)
+                        .padding(top = 10.dp)
+                        .padding(bottom = 7.dp)
+                        .fillMaxWidth()
+                )
+
+                RatingBar(rating = 0)
+
+                Text(
+                    text = "Feedback",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(start = 17.dp)
+                        .padding(top = 10.dp)
+                        .padding(bottom = 7.dp)
+                        .fillMaxWidth()
+                )
+
+                var text by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+                    mutableStateOf(TextFieldValue("", TextRange(0, 7)))
+                }
+
+                OutlinedTextField(
+                    value = text,
+                    shape = RoundedCornerShape(25.dp),
+                    onValueChange = { text = it },
+                    modifier = Modifier
+                        .padding(start = 10.dp)
+                        .padding(end = 10.dp)
+                        .padding(bottom = 12.dp)
+                        .heightIn(120.dp, Dp.Infinity)
+                        .fillMaxWidth()
+                )
+
+                FeedbackSubmitButton(rating_state, text.text)
+
+            }
+        }
     }
 
 }
 
-
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
-    @Composable
-    fun RateDialog() {
-
-        BackgroundOverlay(color = Color(0x99000000)) {
-
-        }
-        Dialog(
-            onDismissRequest = { showRatingDialog = false },
-
-            ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
-                shadowElevation = 1.dp,
-                shape = RoundedCornerShape(25.dp)
-            ) {
-
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Rate",
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .padding(start = 17.dp)
-                            .padding(top = 10.dp)
-                            .padding(bottom = 7.dp)
-                            .fillMaxWidth()
-                    )
-
-                    RatingBar(rating = 0)
-
-                    Text(
-                        text = "Feedback",
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .padding(start = 17.dp)
-                            .padding(top = 10.dp)
-                            .padding(bottom = 7.dp)
-                            .fillMaxWidth()
-                    )
-
-                    var text by rememberSaveable(stateSaver = TextFieldValue.Saver) {
-                        mutableStateOf(TextFieldValue("", TextRange(0, 7)))
-                    }
-
-                    OutlinedTextField(
-                        value = text,
-                        shape = RoundedCornerShape(25.dp),
-                        onValueChange = { text = it },
-                        modifier = Modifier
-                            .padding(start = 10.dp)
-                            .padding(end = 10.dp)
-                            .padding(bottom = 12.dp)
-                            .heightIn(120.dp, Dp.Infinity)
-                            .fillMaxWidth()
-                    )
-
-                    ComposableWithFillMaxWidthAndButton(rating_state, text.text)
-
-                }
-
-
-            }
-        }
-
-
-    }
-
+@OptIn(DelicateCoroutinesApi::class)
 @Composable
-fun ComposableWithFillMaxWidthAndButton(rating_state: Int, feedback: String) {
+fun FeedbackSubmitButton(rating_state: Int, feedback: String) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -480,6 +435,7 @@ fun ComposableWithFillMaxWidthAndButton(rating_state: Int, feedback: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("")
+
             Surface(
                 modifier = Modifier
                     .padding(all = 10.dp),
@@ -490,14 +446,8 @@ fun ComposableWithFillMaxWidthAndButton(rating_state: Int, feedback: String) {
             ) {
                 Button(
                     onClick = {
-                        snacbarMessage = "Feedback Submitted Successfully"
-                        println(rating_state)
-                        println(feedback)
-                        feedback_send.rating = rating_state
-                        feedback_send.feedback_ = feedback
-                        SendFeedback()
-                        showRatingDialog = false
-                        showSnackbar = true},
+                        FeedbackSubmit(rating_state, feedback)
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -506,32 +456,116 @@ fun ComposableWithFillMaxWidthAndButton(rating_state: Int, feedback: String) {
                     Text("Submit")
                 }
             }
-
         }
     }
 }
 
 @Composable
-fun LoadingDialog(is_loading: Boolean){
-
-    val loading by rememberUpdatedState(newValue = is_loading)
-
-    if (is_loading){
-        Dialog(onDismissRequest = { /*TODO*/ }) {
-            LoadingScreen(is_loading = true)
+fun ResultList(result_data: List<GetDataClass>) {
+    LazyColumn {
+        items(result_data) { message ->
+            ResultCard(message)
         }
     }
-
 }
 
-    @Preview
-    @Composable
-    fun DialogPreview() {
-        RateDialog()
+@Composable
+fun ResultCard(card_data: GetDataClass) {
+    Surface(
+        shadowElevation = 2.dp,
+        modifier = Modifier.padding(all = 5.dp),
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+
+    ) {
+
+        Column {
+
+            Column(
+                modifier = Modifier.padding(all = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(bottom = 5.dp)
+                ) {
+                    Text(
+                        text = "Institute:  ",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(text = card_data.Institute)
+                }
+
+                Row {
+                    Text(
+                        text = "Program:  ",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(text = card_data.Program)
+                }
+
+            }
+
+            Box(
+                modifier = Modifier
+                    .background(color = colorResource(id = R.color.green_100))
+                    .fillMaxWidth()
+                    .padding(start = 10.dp)
+            ) {
+                Text(
+                    text = "Chances: ${card_data.chances}%",
+                )
+            }
+        }
+
     }
+}
+
+
+// ---------------------------------- Previews ----------------------------------
+@Preview(showBackground = true)
+@Composable
+fun MainPreview() {
+    MainScren()
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DropdownMenuPreview() {
+    val options1 = listOf("Option 1", "Option 2", "Option 3", "Option 4", "Option 5")
+    DropdownMenu("Text", options1)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun InputPreview() {
+    RankInput("Text")
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoadingScreenPreview() {
+    LoadingScreen(loading)
+}
 
 @Preview
 @Composable
-fun LoadingPreview(){
-    LoadingDialog(true)
+fun DialogPreview() {
+    RateDialog()
+}
+
+
+@Preview(showBackground = true, showSystemUi = false)
+@Composable
+fun ResultCardPreview() {
+    ResultCard(
+        card_data = GetDataClass(
+            "Indian Institute of Technology Hydrabad ",
+            "Material Science and Metallurgical Engineering",
+            "Gender-Neutral",
+            "AI",
+            "OBC-NCL",
+            12301,
+            2923,
+            100
+        )
+    )
 }

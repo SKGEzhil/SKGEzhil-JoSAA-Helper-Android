@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -60,7 +61,6 @@ import com.skgezhil.josaa.ui.theme.SKGEzhilJoSAAHelperTheme
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -104,15 +104,17 @@ data class SendDataClass(
 data class DropdownSendClass(val value: String, val drop_type: String)
 data class InstituteDropdownClass(val institute: String)
 data class ProgramDropdownClass(val program: String)
-data class FeedbackClass(var rating: Int, var feedback_ : String)
+data class FeedbackClass(var rating: Int, var feedback_: String)
 
 // --------------------------------------- Variables -------------------------------------------
 
-var feedback_send by mutableStateOf(FeedbackClass(0,""))
-var snacbarMessage by mutableStateOf("")
+var feedback_send by mutableStateOf(FeedbackClass(0, ""))
+var expanded by mutableStateOf(false)
+var alert_message by mutableStateOf("")
 var isConnected by mutableStateOf(false)
 var showRatingDialog by mutableStateOf(false)
 var showSnackbar by mutableStateOf(false)
+var showToast by mutableStateOf(false)
 var submit_form = SendDataClass("", "", "", "", "", "", "", "")
 var received_data: List<GetDataClass> = listOf()
 const val BaseUrl: String = "https://skgezhil-josaa.com"
@@ -186,7 +188,7 @@ fun SendData() = runBlocking {
     }
 }
 
-fun SendFeedback() = runBlocking {
+suspend fun SendFeedback() = runBlocking {
     val serverUrl = "${BaseUrl}/feedback-submit"
     val mapper = jacksonObjectMapper()
     val datajson = mapper.writeValueAsString(feedback_send)
@@ -233,7 +235,6 @@ fun SendFeedback() = runBlocking {
         connection.disconnect()
     }
 }
-
 
 suspend fun SendDropdown(dropdown_type: String, dropdown_value: String) = runBlocking {
     loading = true
@@ -389,8 +390,6 @@ fun ObjectToString() {
 }
 
 // ----------------------------- Main Activity ---------------------------------------
-var expanded by mutableStateOf(false)
-
 class MainActivity : ComponentActivity() {
 
     private var broadcastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -401,7 +400,6 @@ class MainActivity : ComponentActivity() {
             )
             if (notConnected) {
                 println("No Internet")
-
                 isConnected = false
             } else {
                 isConnected = true
@@ -423,22 +421,19 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         installSplashScreen()
 
-
-
-
         setContent {
-
             SKGEzhilJoSAAHelperTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
                 val scope = rememberCoroutineScope()
-                val message by rememberUpdatedState(newValue = snacbarMessage)
+                val message by rememberUpdatedState(newValue = alert_message)
                 val isExpanded by rememberUpdatedState(newValue = expanded)
                 val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
+                // show snackbar as a suspend function
                 if (showSnackbar) {
-                    // show snackbar as a suspend function
                     scope.launch {
                         val job = scope.launch {
                             snackbarHostState.showSnackbar(
@@ -450,6 +445,12 @@ class MainActivity : ComponentActivity() {
                         job.cancel()
                     }
                     showSnackbar = false
+                }
+
+                //show Toast
+                if (showToast) {
+                    Toast.makeText(this, alert_message, Toast.LENGTH_SHORT).show()
+                    showToast = false
                 }
 
                 Scaffold(
@@ -500,8 +501,6 @@ class MainActivity : ComponentActivity() {
                                             fontWeight = FontWeight.Bold
                                         )
 
-
-
                                         DropdownMenuItem(
                                             text = { Text(text = "Instagram") },
                                             onClick = {
@@ -516,6 +515,7 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         )
+
                                         DropdownMenuItem(
                                             text = { Text(text = "GitHub") },
                                             onClick = {
@@ -530,6 +530,7 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         )
+
                                         DropdownMenuItem(
                                             text = { Text(text = "YouTube") },
                                             onClick = {
@@ -544,6 +545,7 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         )
+
                                         DropdownMenuItem(
                                             text = { Text(text = "Source Code") },
                                             onClick = {
@@ -587,11 +589,8 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                         )
-
-
                                     }
                                 }
-
                             }
                         )
                     },
@@ -601,17 +600,12 @@ class MainActivity : ComponentActivity() {
                         if (!showRatingDialog) {
                             ExtendedFloatingActionButton(
                                 onClick = {
-                                    if (showRatingDialog) {
-                                        println("CLICKED")
-                                        showSnackbar = true
-                                        showRatingDialog = false
-                                    } else {
-                                        loading = true
-                                        SendData()
-                                        GetData()
-                                        val intent = Intent(this, ResultActivity::class.java)
-                                        startActivity(intent)
-                                    }
+
+                                    loading = true
+                                    SendData()
+                                    GetData()
+                                    val intent = Intent(this, ResultActivity::class.java)
+                                    startActivity(intent)
 
                                 },
                                 text = { Text(text = "Submit  ") },
@@ -631,9 +625,6 @@ class MainActivity : ComponentActivity() {
                             MainScren()
                             LoadingScreen(loading)
 
-                            if(loadingdialog){
-                                LoadingDialog(is_loading = loadingdialog)
-                            }
                             if (showRatingDialog)
                                 RateDialog()
 
@@ -645,23 +636,29 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun review() {
-        val manager = ReviewManagerFactory.create(this)
-        val request = manager.requestReviewFlow()
-        request.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                // We got the ReviewInfo object
-                val reviewInfo = task.result
-                println("Success")
+        if (isConnected) {
+            val manager = ReviewManagerFactory.create(this)
+            val request = manager.requestReviewFlow()
+            request.addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    // We got the ReviewInfo object
+                    val reviewInfo = task.result
+                    println("Success")
 
-                val flow: Task<Void?> = manager.launchReviewFlow(this, reviewInfo)
-                flow.addOnCompleteListener { task1: Task<Void?>? -> }
+                    val flow: Task<Void?> = manager.launchReviewFlow(this, reviewInfo)
+                    flow.addOnCompleteListener { task1: Task<Void?>? -> }
 
-            } else {
-                // There was some problem, log or handle the error code.
-                @ReviewErrorCode val reviewErrorCode =
-                    (task.getException() as ReviewException).errorCode
+                } else {
+                    // There was some problem, log or handle the error code.
+                    @ReviewErrorCode val reviewErrorCode =
+                        (task.exception as ReviewException).errorCode
+                }
             }
+        } else {
+            alert_message = "Please check your internet connection"
+            showSnackbar = true
         }
+
     }
 
 
@@ -688,29 +685,18 @@ fun DropdownManipulation(label: String, option: String, isConnected: Boolean) {
     if (isConnected) {
         when (label) {
             "Institute Type" -> {
-                Expanded = false
                 submit_form.inst_type = option
                 GlobalScope.launch(Dispatchers.Main) {
                     withContext(Dispatchers.IO) { SendDropdown("institute_type", option) }
-                    // Handle the sendResponse if needed
-
                     withContext(Dispatchers.IO) { GetDropdown("institute") }
-
-
                 }
-                println("HELLO")
-
             }
 
             "Institute" -> {
                 submit_form.inst = option
-                runBlocking {
-                    launch {
-                        SendDropdown("institute", option)
-                    }
-                    launch {
-                        GetDropdown("program")
-                    }
+                GlobalScope.launch(Dispatchers.Main) {
+                    withContext(Dispatchers.IO) { SendDropdown("institute", option) }
+                    withContext(Dispatchers.IO) { GetDropdown("program") }
                 }
             }
 
@@ -732,11 +718,31 @@ fun DropdownManipulation(label: String, option: String, isConnected: Boolean) {
         }
 
     } else {
-        snacbarMessage = "Please check your internet connection"
+        alert_message = "Please check your internet connection"
         showSnackbar = true
         println(" Check your connection")
 
     }
 
+
+}
+
+@OptIn(DelicateCoroutinesApi::class)
+fun FeedbackSubmit(rating_state: Int, feedback: String) {
+    if (isConnected) {
+        alert_message = "Feedback Submitted Successfully"
+        println(rating_state)
+        println(feedback)
+        feedback_send.rating = rating_state
+        feedback_send.feedback_ = feedback
+        GlobalScope.launch(Dispatchers.Main) {
+            withContext(Dispatchers.IO) { SendFeedback() }
+        }
+        showRatingDialog = false
+        showToast = true
+    } else {
+        alert_message = "Please check your internet connection"
+        showSnackbar = true
+    }
 
 }
