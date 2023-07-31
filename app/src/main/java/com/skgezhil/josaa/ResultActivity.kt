@@ -4,11 +4,14 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -39,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -54,12 +58,33 @@ import com.google.android.play.core.review.model.ReviewErrorCode
 import com.skgezhil.josaa.ui.theme.SKGEzhilJoSAAHelperTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.lang.Error
 
 class ResultActivity : ComponentActivity() {
     @SuppressLint("CoroutineCreationDuringComposition")
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+//        onBackPressedDispatcher.addCallback(this,onBackPressedCallback)
+
+//        onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
+//            override fun handleOnBackPressed() {
+//                println("Back button pressed")
+//            }
+//        })
+
+        val callback = object : OnBackPressedCallback(
+            true // default to enabled
+        ) {
+            override fun handleOnBackPressed() {
+                println("BACK PRESSED")
+            }
+        }
+        ResultActivity().onBackPressedDispatcher.addCallback(
+            this, // LifecycleOwner
+            callback
+        )
+
         setContent {
             SKGEzhilJoSAAHelperTheme {
 
@@ -187,7 +212,7 @@ class ResultActivity : ComponentActivity() {
                                             text = { Text(text = "Rate App /\nWrite Review") },
                                             onClick = {
                                                 expanded = false
-                                                review()
+                                                Review(this@ResultActivity)
                                             },
                                             leadingIcon = {
                                                 Icon(
@@ -213,8 +238,6 @@ class ResultActivity : ComponentActivity() {
 
                                     }
                                 }
-
-
                             }
                         )
                     }
@@ -228,6 +251,17 @@ class ResultActivity : ComponentActivity() {
                             if (showRatingDialog)
                                 RateDialog()
 
+                            if (!isAvailable){
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxHeight(),
+                                    contentAlignment = Alignment.Center
+                                ){
+                                    Availability()
+//                                    isAvailable = true
+                                }
+                            }
+
                         }
                     }
 
@@ -237,23 +271,12 @@ class ResultActivity : ComponentActivity() {
         }
     }
 
-    private fun review() {
-        val manager = ReviewManagerFactory.create(this)
-        val request = manager.requestReviewFlow()
-        request.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                // We got the ReviewInfo object
-                val reviewInfo = task.result
-                println("Success")
+//    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
+//        override fun handleOnBackPressed() {
+//            //showing dialog and then closing the application..
+//            isAvailable = true
+//            println("AVAILABILITY: ${isAvailable}")
+//        }
+//    }
 
-                val flow: Task<Void?> = manager.launchReviewFlow(this, reviewInfo)
-                flow.addOnCompleteListener { task1: Task<Void?>? -> }
-
-            } else {
-                // There was some problem, log or handle the error code.
-                @ReviewErrorCode val reviewErrorCode =
-                    (task.exception as ReviewException).errorCode
-            }
-        }
-    }
 }

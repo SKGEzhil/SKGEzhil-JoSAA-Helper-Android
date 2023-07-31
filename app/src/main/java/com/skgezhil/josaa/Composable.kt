@@ -1,5 +1,6 @@
 package com.skgezhil.josaa
 
+import android.content.res.Configuration
 import android.view.MotionEvent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.Spring
@@ -7,6 +8,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,10 +32,10 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +45,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,54 +59,65 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 // --------------------------- Global Declaration -------------------------------
-var rating_state by mutableStateOf(0)
+var rating_state by mutableStateOf(3)
 
 // ----------------------------- Composables ------------------------------------
 @Composable
 fun MainScren() {
 
-    LazyColumn {
+    val isDarkTheme = isSystemInDarkTheme()
+
+    LazyColumn(
+        modifier = Modifier.padding(top = 10.dp)
+    ) {
         item {
-            DropdownMenu(label = "Institute Type", options = institute_type_optn)
+            DropdownMenu(
+                label = "Institute Type",
+                options = institute_type_optn,
+                isDarkTheme = isDarkTheme
+            )
         }
         item {
-            DropdownMenu(label = "Institute", options = institute_dropdown_string)
+            DropdownMenu(
+                label = "Institute",
+                options = institute_dropdown_string,
+                isDarkTheme = isDarkTheme
+            )
         }
 
         item {
-            DropdownMenu(label = "Program", options = program_dropdown_string)
+            DropdownMenu(
+                label = "Program",
+                options = program_dropdown_string,
+                isDarkTheme = isDarkTheme
+            )
         }
 
         item {
-            DropdownMenu(label = "Gender", options = gender_optn)
+            DropdownMenu(label = "Gender", options = gender_optn, isDarkTheme = isDarkTheme)
         }
 
         item {
-            DropdownMenu(label = "Quota", options = quote_optn)
+            DropdownMenu(label = "Quota", options = quote_optn, isDarkTheme = isDarkTheme)
         }
 
         item {
-            DropdownMenu(label = "Category", options = category_optn)
+            DropdownMenu(label = "Category", options = category_optn, isDarkTheme = isDarkTheme)
         }
 
         item {
-            RankInput(label = "Common Rank")
+            RankInput(label = "Common Rank", isDarkTheme = isDarkTheme)
         }
 
         item {
-            RankInput(label = "Category Rank")
+            RankInput(label = "Category Rank", isDarkTheme = isDarkTheme)
         }
 
     }
@@ -113,24 +126,26 @@ fun MainScren() {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
-fun DropdownMenu(label: String, options: List<String>) {
+fun DropdownMenu(label: String, options: List<String>, isDarkTheme: Boolean) {
     val currentOptions by rememberUpdatedState(newValue = options)
     var expanded by remember { mutableStateOf(false) }
     var selectedOptionText by rememberSaveable { mutableStateOf(currentOptions[0]) }
 
     Surface(
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier
-            .padding(top = 10.dp)
+            .padding(bottom = 10.dp)
             .padding(start = 5.dp)
             .padding(end = 5.dp),
+        shadowElevation = 0.5.dp,
         shape = RoundedCornerShape(10.dp),
-        shadowElevation = 2.dp
+//        shadowElevation = 2.dp
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp),
+//            color = MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp),
+            color = if (isDarkTheme) MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp) else Color.White,
             shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.padding(start = 5.dp)
+            modifier = Modifier.padding(start = 3.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -160,32 +175,49 @@ fun DropdownMenu(label: String, options: List<String>) {
                         onValueChange = {},
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         colors = ExposedDropdownMenuDefaults.textFieldColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp)
+
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(10.dp)
                         ),
                     )
 
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
+                    MaterialTheme(
+                        shapes = MaterialTheme.shapes.copy(
+                            extraSmall = RoundedCornerShape(16.dp)
+                        ),
                     ) {
-                        currentOptions.forEach { selectionOption ->
-                            DropdownMenuItem(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp)),
-                                text = { Text(selectionOption) },
-                                onClick = {
-                                    selectedOptionText = selectionOption
-                                    option = selectionOption
-                                    expanded = false
-                                    DropdownManipulation(label, selectionOption, isConnected)
-                                },
-                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                            )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+
+                        ) {
+                            currentOptions.forEach { selectionOption ->
+                                DropdownMenuItem(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp)),
+                                    text = { Text(selectionOption) },
+                                    onClick = {
+                                        selectedOptionText = selectionOption
+                                        option = selectionOption
+                                        expanded = false
+                                        DropdownManipulation(label, selectionOption, isConnected)
+                                        isOpen = selectionOption == "OPEN"
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+
+                                    )
+                            }
                         }
                     }
+
+
                 }
+
             }
         }
     }
@@ -195,7 +227,7 @@ fun DropdownMenu(label: String, options: List<String>) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun RankInput(label: String) {
+fun RankInput(label: String, isDarkTheme: Boolean) {
     val text = remember { mutableStateOf("") }
     val enteredText = text.value
     if (label == "Common Rank") {
@@ -211,19 +243,19 @@ fun RankInput(label: String) {
     }
 
     Surface(
-        color = MaterialTheme.colorScheme.outline,
+        color = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier
-            .padding(top = 10.dp)
             .padding(start = 5.dp)
+            .padding(bottom = 10.dp)
             .padding(end = 5.dp),
         shape = RoundedCornerShape(10.dp),
-        shadowElevation = 2.dp
+        shadowElevation = 0.5.dp
 
     ) {
         Surface(
-            color = MaterialTheme.colorScheme.surfaceColorAtElevation(5.dp),
+            color = if (isDarkTheme) MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp) else Color.White,
             shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.padding(start = 5.dp)
+            modifier = Modifier.padding(start = 3.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -241,8 +273,33 @@ fun RankInput(label: String) {
                 TextField(
                     value = text.value,
                     colors = ExposedDropdownMenuDefaults.textFieldColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(50.dp)
+                        containerColor = if (label == "Category Rank") {
+                            if (isOpen) {
+                                Color(94, 54, 54, 55)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceColorAtElevation(10.dp)
+                            }
+                        } else {
+                            MaterialTheme.colorScheme.surfaceColorAtElevation(10.dp)
+                        }
+
                     ),
+                    placeholder = {
+                        if (label == "Category Rank") {
+                            if (isOpen) {
+                                Text(text = "Nil")
+                            } else {
+                                Text(text = "Your Rank")
+                            }
+                        } else {
+                            Text(text = "Your Rank")
+                        }
+                    },
+                    readOnly = if (label == "Category Rank") {
+                        isOpen
+                    } else {
+                        false
+                    },
                     keyboardActions = KeyboardActions(onDone = {
                         val enteredText = text.value
                         softwareKeyboardController?.hide()
@@ -333,7 +390,12 @@ fun RatingBar(
                         }
                         true
                     },
-                tint = if (i <= ratingState) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                tint = if (i <= ratingState) MaterialTheme.colorScheme.primary else Color(
+                    76,
+                    65,
+                    87,
+                    104
+                )
             )
         }
     }
@@ -362,9 +424,10 @@ fun RateDialog() {
     BackgroundOverlay(color = Color(0x99000000)) {}
     Dialog(
         onDismissRequest = { showRatingDialog = false },
-        ) {
+    ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth(),
             color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
             shadowElevation = 1.dp,
             shape = RoundedCornerShape(25.dp)
@@ -383,7 +446,7 @@ fun RateDialog() {
                         .fillMaxWidth()
                 )
 
-                RatingBar(rating = 0)
+                RatingBar(rating = 3)
 
                 Text(
                     text = "Feedback",
@@ -400,17 +463,23 @@ fun RateDialog() {
                     mutableStateOf(TextFieldValue("", TextRange(0, 7)))
                 }
 
-                OutlinedTextField(
+                TextField(
                     value = text,
                     shape = RoundedCornerShape(25.dp),
+                    colors = TextFieldDefaults.textFieldColors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
                     onValueChange = { text = it },
                     modifier = Modifier
                         .padding(start = 10.dp)
                         .padding(end = 10.dp)
                         .padding(bottom = 12.dp)
-                        .heightIn(120.dp, Dp.Infinity)
-                        .fillMaxWidth()
-                )
+                        .height(130.dp)
+                        .fillMaxWidth(),
+
+                    )
 
                 FeedbackSubmitButton(rating_state, text.text)
 
@@ -519,8 +588,49 @@ fun ResultCard(card_data: GetDataClass) {
     }
 }
 
+@Composable
+fun Availability() {
+
+    Box(modifier = Modifier.padding(5.dp)) {
+        Surface(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .fillMaxWidth(),
+            color = Color(255, 95, 95, 146)
+        ) {
+            Box(
+                modifier = Modifier.padding(0.dp),
+                contentAlignment = Center
+            ) {
+                Text(
+                    text = "No viable options found based on your rank",
+                    fontSize = 17.sp,
+                    color = Color(255, 255, 255, 255),
+                    modifier = Modifier
+                        .padding(10.dp)
+                )
+            }
+        }
+    }
+
+    if (!isAvailable) {
+        isAvailable = true
+    }
+
+}
+
 
 // ---------------------------------- Previews ----------------------------------
+
+@Preview(
+    showBackground = true, showSystemUi = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
+)
+@Composable
+fun AvailabilityPreview() {
+    Availability()
+}
+
 @Preview(showBackground = true)
 @Composable
 fun MainPreview() {
@@ -531,13 +641,13 @@ fun MainPreview() {
 @Composable
 fun DropdownMenuPreview() {
     val options1 = listOf("Option 1", "Option 2", "Option 3", "Option 4", "Option 5")
-    DropdownMenu("Text", options1)
+    DropdownMenu("Text", options1, false)
 }
 
 @Preview(showBackground = true)
 @Composable
 fun InputPreview() {
-    RankInput("Text")
+    RankInput("Text", false)
 }
 
 @Preview(showBackground = true)

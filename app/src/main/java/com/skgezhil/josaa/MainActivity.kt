@@ -3,6 +3,7 @@ package com.skgezhil.josaa
 // --------------------------------- Imports ----------------------------------
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -13,6 +14,8 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -44,19 +47,24 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.gms.tasks.Task
-import com.google.android.play.core.review.ReviewException
 import com.google.android.play.core.review.ReviewManagerFactory
-import com.google.android.play.core.review.model.ReviewErrorCode
 import com.skgezhil.josaa.ui.theme.SKGEzhilJoSAAHelperTheme
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -75,319 +83,6 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
-
-
-// ------------------------------- Data Class --------------------------------------
-
-data class GetDataClass(
-    val Institute: String,
-    val Program: String,
-    val Gender: String,
-    val Quota: String,
-    val Category: String,
-    val Open_rank: Int,
-    val Close_rank: Int,
-    val chances: Int
-)
-
-data class SendDataClass(
-    var inst_type: String,
-    var inst: String,
-    var prog: String,
-    var gender: String,
-    var quota: String,
-    var category: String,
-    var common_rank: String,
-    var category_rank: String
-)
-
-data class DropdownSendClass(val value: String, val drop_type: String)
-data class InstituteDropdownClass(val institute: String)
-data class ProgramDropdownClass(val program: String)
-data class FeedbackClass(var rating: Int, var feedback_: String)
-
-// --------------------------------------- Variables -------------------------------------------
-
-var feedback_send by mutableStateOf(FeedbackClass(0, ""))
-var expanded by mutableStateOf(false)
-var alert_message by mutableStateOf("")
-var isConnected by mutableStateOf(false)
-var showRatingDialog by mutableStateOf(false)
-var showSnackbar by mutableStateOf(false)
-var showToast by mutableStateOf(false)
-var submit_form = SendDataClass("", "", "", "", "", "", "", "")
-var received_data: List<GetDataClass> = listOf()
-const val BaseUrl: String = "https://skgezhil-josaa.com"
-var institute_dropdown: List<InstituteDropdownClass> = listOf()
-var program_dropdown: List<ProgramDropdownClass> = listOf()
-var option = ""
-var dropdown_defaults by mutableStateOf(listOf("Select", "any"))
-var institute_dropdown_string by mutableStateOf(listOf("Select", "any"))
-var program_dropdown_string by mutableStateOf(listOf("Select", "any"))
-var loading by mutableStateOf(false)
-var institute_type_optn = listOf("All", "IIT", "NIT", "IIIT", "Other GFTIs")
-var gender_optn = listOf("Select", "Gender-Neutral", "Female-only (including Supernumerary)")
-var quote_optn = listOf("Select", "AI", "OS", "HS")
-var category_optn = listOf(
-    "Select",
-    "OPEN",
-    "OBC-NCL",
-    "SC",
-    "ST",
-    "EWS"
-)
-
-
-// --------------------------- API Request functions ---------------------------------
-
-fun SendData() = runBlocking {
-    val serverUrl = "${BaseUrl}/submit-form"
-    val mapper = jacksonObjectMapper()
-    val datajson = mapper.writeValueAsString(submit_form)
-    println(datajson)
-    // Create a TrustManager that trusts all certificates
-    val trustAllCertificates = arrayOf<TrustManager>(object : X509TrustManager {
-        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-            // Do nothing, trusting all certificates
-        }
-
-        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-            // Do nothing, trusting all certificates
-        }
-
-        override fun getAcceptedIssuers(): Array<X509Certificate> {
-            return emptyArray()
-        }
-    })
-
-    // Install the TrustManager
-    try {
-        val sslContext = SSLContext.getInstance("TLS")
-        sslContext.init(null, trustAllCertificates, java.security.SecureRandom())
-        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.socketFactory)
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
-
-    withContext(Dispatchers.IO) {
-        val url = URL(serverUrl)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.doOutput = true
-        connection.setRequestProperty("Content-Type", "application/json")
-
-        val outputStreamWriter = OutputStreamWriter(connection.outputStream)
-        outputStreamWriter.write(datajson.toString())
-        outputStreamWriter.flush()
-
-        val responseCode = connection.responseCode
-        println("Response code: $responseCode")
-
-        outputStreamWriter.close()
-        connection.disconnect()
-    }
-}
-
-suspend fun SendFeedback() = runBlocking {
-    val serverUrl = "${BaseUrl}/feedback-submit"
-    val mapper = jacksonObjectMapper()
-    val datajson = mapper.writeValueAsString(feedback_send)
-    println(datajson)
-    // Create a TrustManager that trusts all certificates
-    val trustAllCertificates = arrayOf<TrustManager>(object : X509TrustManager {
-        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-            // Do nothing, trusting all certificates
-        }
-
-        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-            // Do nothing, trusting all certificates
-        }
-
-        override fun getAcceptedIssuers(): Array<X509Certificate> {
-            return emptyArray()
-        }
-    })
-
-    // Install the TrustManager
-    try {
-        val sslContext = SSLContext.getInstance("TLS")
-        sslContext.init(null, trustAllCertificates, java.security.SecureRandom())
-        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.socketFactory)
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
-
-    withContext(Dispatchers.IO) {
-        val url = URL(serverUrl)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.doOutput = true
-        connection.setRequestProperty("Content-Type", "application/json")
-
-        val outputStreamWriter = OutputStreamWriter(connection.outputStream)
-        outputStreamWriter.write(datajson.toString())
-        outputStreamWriter.flush()
-
-        val responseCode = connection.responseCode
-        println("Response code: $responseCode")
-
-        outputStreamWriter.close()
-        connection.disconnect()
-    }
-}
-
-suspend fun SendDropdown(dropdown_type: String, dropdown_value: String) = runBlocking {
-    loading = true
-    val serverUrl = "${BaseUrl}/send/dropdown"
-    val data = DropdownSendClass(dropdown_value, dropdown_type)
-    val mapper = jacksonObjectMapper()
-    val datajson = mapper.writeValueAsString(data)
-    println(datajson)
-    println(data)
-    // Create a TrustManager that trusts all certificates
-    val trustAllCertificates = arrayOf<TrustManager>(object : X509TrustManager {
-        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-            // Do nothing, trusting all certificates
-        }
-
-        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-            // Do nothing, trusting all certificates
-        }
-
-        override fun getAcceptedIssuers(): Array<X509Certificate> {
-            return emptyArray()
-        }
-    })
-
-    // Install the TrustManager
-    try {
-        val sslContext = SSLContext.getInstance("TLS")
-        sslContext.init(null, trustAllCertificates, java.security.SecureRandom())
-        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.socketFactory)
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
-
-    withContext(Dispatchers.IO) {
-
-        try {
-            val url = URL(serverUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
-
-            val outputStreamWriter = OutputStreamWriter(connection.outputStream)
-            outputStreamWriter.write(datajson.toString())
-            outputStreamWriter.flush()
-
-            val responseCode = connection.responseCode
-            println("SENT")
-            println("Response code: $responseCode")
-
-            outputStreamWriter.close()
-            connection.disconnect()
-        } catch (e: Error) {
-            println("Error: ${e}")
-        }
-
-    }
-}
-
-suspend fun GetDropdown(dropdown_type: String) = runBlocking {
-    val serverUrl = "${BaseUrl}/dropdown/${dropdown_type}s"
-    val mapper = jacksonObjectMapper()
-
-
-    withContext(Dispatchers.IO) {
-        val url = URL(serverUrl)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestMethod = "GET"
-
-        val responseCode = connection.responseCode
-        println("Response code: $responseCode")
-
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            val reader = BufferedReader(InputStreamReader(connection.inputStream))
-            val response = StringBuilder()
-            var line: String?
-
-            while (reader.readLine().also { line = it } != null) {
-                response.append(line)
-            }
-
-            reader.close()
-            println("RECEIVED")
-            println("Response data: $response")
-            if (dropdown_type == "institute") {
-                institute_dropdown = mapper.readValue(response.toString())
-                println(institute_dropdown)
-                ObjectToString()
-            }
-            if (dropdown_type == "program") {
-                program_dropdown = mapper.readValue(response.toString())
-                println(program_dropdown)
-                ObjectToString()
-            }
-
-        } else {
-            println("Error: Failed to receive data")
-        }
-
-        connection.disconnect()
-    }
-}
-
-fun GetData() = runBlocking {
-    val serverUrl = "${BaseUrl}/result"
-    val mapper = jacksonObjectMapper()
-
-
-    withContext(Dispatchers.IO) {
-        val url = URL(serverUrl)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestMethod = "GET"
-
-        val responseCode = connection.responseCode
-        println("Response code: $responseCode")
-
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            val reader = BufferedReader(InputStreamReader(connection.inputStream))
-            val response = StringBuilder()
-            var line: String?
-
-            while (reader.readLine().also { line = it } != null) {
-                response.append(line)
-            }
-
-            reader.close()
-            println("Response data: $response")
-            received_data = mapper.readValue(response.toString())
-            println(received_data)
-            loading = false
-        } else {
-            println("Error: Failed to receive data")
-        }
-
-        connection.disconnect()
-    }
-}
-
-fun ObjectToString() {
-    institute_dropdown_string =
-        dropdown_defaults.union(institute_dropdown.map { institute -> institute.institute })
-            .toList()
-    loading = false
-    println(institute_dropdown_string)
-
-    program_dropdown_string =
-        dropdown_defaults.union(program_dropdown.map { program -> program.program })
-            .toList()
-    loading = false
-    println(program_dropdown_string)
-
-
-}
 
 // ----------------------------- Main Activity ---------------------------------------
 class MainActivity : ComponentActivity() {
@@ -418,7 +113,9 @@ class MainActivity : ComponentActivity() {
     }
 
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "CoroutineCreationDuringComposition")
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class,
+        ExperimentalTextApi::class
+    )
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -455,7 +152,8 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
-                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                    modifier = Modifier
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
                     topBar = {
                         TopAppBar(
                             scrollBehavior = scrollBehavior,
@@ -494,12 +192,37 @@ class MainActivity : ComponentActivity() {
                                     ) {
 
                                         Text(
-                                            text = "SKGEzhil",
+                                            text = buildAnnotatedString {
+                                                append("SKGEzhil ")
+                                                withStyle(
+                                                    SpanStyle(
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 17.sp,
+
+                                                    )
+                                                ) {
+                                                    append(" (Developer)")
+                                                }
+                                                withStyle(
+                                                    SpanStyle(
+                                                        fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Normal
+                                                    )
+                                                ){
+                                                    append("\nA fresher @ IIT Hyderabad")
+                                                }
+
+
+                                            },
                                             modifier = Modifier
-                                                .padding(all = 10.dp),
-                                            fontSize = 20.sp,
+                                                .padding(top = 10.dp)
+                                                .padding(bottom = 10.dp)
+                                                .padding(start = 10.dp)
+                                                .padding(end = 0.dp),
+                                            fontSize = 22.sp,
                                             fontWeight = FontWeight.Bold
                                         )
+
 
                                         DropdownMenuItem(
                                             text = { Text(text = "Instagram") },
@@ -565,9 +288,7 @@ class MainActivity : ComponentActivity() {
                                             text = { Text(text = "Rate App /\nWrite Review") },
                                             onClick = {
                                                 expanded = false
-//                                                showRatingDialog = true
-                                                review()
-                                            },
+                                                Review(this@MainActivity)                                     },
                                             leadingIcon = {
                                                 Icon(
                                                     imageVector = Icons.Filled.Star,
@@ -620,7 +341,18 @@ class MainActivity : ComponentActivity() {
                     ) { contentPadding ->
                     // Screen content
                     Surface {
-                        Box(modifier = Modifier.padding(contentPadding)) {
+
+                        val isDarkTheme = isSystemInDarkTheme()
+
+                        Box(
+                            modifier = Modifier
+                            .padding(contentPadding)
+                                .background(brush = Brush.linearGradient(
+                                    colors = if (isDarkTheme) listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surface) else listOf(MaterialTheme.colorScheme.inverseOnSurface, MaterialTheme.colorScheme.inverseOnSurface),
+                                    start = Offset(0f, 0f),
+                                    end = Offset.Infinite
+                                )),
+                        ) {
 
                             MainScren()
                             LoadingScreen(loading)
@@ -634,115 +366,5 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    private fun review() {
-        if (isConnected) {
-            val manager = ReviewManagerFactory.create(this)
-            val request = manager.requestReviewFlow()
-            request.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    // We got the ReviewInfo object
-                    val reviewInfo = task.result
-                    println("Success")
-
-                    val flow: Task<Void?> = manager.launchReviewFlow(this, reviewInfo)
-                    flow.addOnCompleteListener { task1: Task<Void?>? -> }
-
-                } else {
-                    // There was some problem, log or handle the error code.
-                    @ReviewErrorCode val reviewErrorCode =
-                        (task.exception as ReviewException).errorCode
-                }
-            }
-        } else {
-            alert_message = "Please check your internet connection"
-            showSnackbar = true
-        }
-
-    }
-
-
 }
 
-
-fun start_activity(activity_name: String, context: Context) {
-    var url: String = ""
-    when (activity_name) {
-        "instagram" -> url = "https://instagram.com/skgezhil2005"
-        "github" -> url = "https://github.com/skgezhil"
-        "youtube" -> url = "https://youtube.com/skgezhil"
-        "source-code" -> url = "https://github.com/SKGEzhil/SKGEzhil-JoSAA-Helper-Android"
-    }
-
-
-    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-    context.startActivity(browserIntent)
-}
-
-@OptIn(DelicateCoroutinesApi::class)
-fun DropdownManipulation(label: String, option: String, isConnected: Boolean) {
-
-    if (isConnected) {
-        when (label) {
-            "Institute Type" -> {
-                submit_form.inst_type = option
-                GlobalScope.launch(Dispatchers.Main) {
-                    withContext(Dispatchers.IO) { SendDropdown("institute_type", option) }
-                    withContext(Dispatchers.IO) { GetDropdown("institute") }
-                }
-            }
-
-            "Institute" -> {
-                submit_form.inst = option
-                GlobalScope.launch(Dispatchers.Main) {
-                    withContext(Dispatchers.IO) { SendDropdown("institute", option) }
-                    withContext(Dispatchers.IO) { GetDropdown("program") }
-                }
-            }
-
-            "Program" -> {
-                submit_form.prog = option
-            }
-
-            "Category" -> {
-                submit_form.category = option
-            }
-
-            "Quota" -> {
-                submit_form.quota = option
-            }
-
-            "Gender" -> {
-                submit_form.gender = option
-            }
-        }
-
-    } else {
-        alert_message = "Please check your internet connection"
-        showSnackbar = true
-        println(" Check your connection")
-
-    }
-
-
-}
-
-@OptIn(DelicateCoroutinesApi::class)
-fun FeedbackSubmit(rating_state: Int, feedback: String) {
-    if (isConnected) {
-        alert_message = "Feedback Submitted Successfully"
-        println(rating_state)
-        println(feedback)
-        feedback_send.rating = rating_state
-        feedback_send.feedback_ = feedback
-        GlobalScope.launch(Dispatchers.Main) {
-            withContext(Dispatchers.IO) { SendFeedback() }
-        }
-        showRatingDialog = false
-        showToast = true
-    } else {
-        alert_message = "Please check your internet connection"
-        showSnackbar = true
-    }
-
-}
